@@ -1,8 +1,8 @@
 package com.example.reverseproxy.config;
 
 
-import com.example.reverseproxy.file.ConfigFile;
 import com.example.reverseproxy.models.ConfigFileModel;
+import com.example.reverseproxy.service.SendRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.Filter ;
 import jakarta.servlet.FilterChain;
@@ -26,18 +26,15 @@ import java.util.List;
 
 @Component
 public class Interceptor implements Filter {
-
-    private final RestTemplate restTemplate;
-    private final ConfigFileModel configFileModel;
+    private final SendRequest sendRequest;
     private List<Class<?>> list;
     @Getter
     private CachedRequest cachedRequest;
     @Getter
     private CachedResponse cachedResponse;
 
-    public Interceptor(RestTemplate restTemplate,ConfigFileModel configFileModel) {
-        this.restTemplate = restTemplate;
-        this.configFileModel=configFileModel;
+    public Interceptor(SendRequest sendRequest) {
+        this.sendRequest = sendRequest;
     }
 
     @Override
@@ -52,9 +49,9 @@ public class Interceptor implements Filter {
 
         cachedRequest=new CachedRequest(request);
         cachedResponse=new CachedResponse(response);
-
-        System.out.println(cachedRequest.getCachedHeaders());
-        System.out.println(cachedRequest.getRequestURI());
+        sendRequest.redirect(cachedRequest,response);
+//        System.out.println(cachedRequest.getCachedHeaders());
+//        System.out.println(cachedRequest.getRequestURI());
     }
 
 

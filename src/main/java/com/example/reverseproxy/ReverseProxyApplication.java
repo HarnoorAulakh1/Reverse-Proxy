@@ -1,7 +1,6 @@
 package com.example.reverseproxy;
 
 import com.example.reverseproxy.config.CachedRequest;
-import com.example.reverseproxy.file.ConfigFile;
 import com.example.reverseproxy.models.Data1;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;

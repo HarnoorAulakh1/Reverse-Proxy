@@ -1,6 +1,5 @@
 package com.example.reverseproxy.config;
 
-import com.example.reverseproxy.file.ConfigFile;
 import com.example.reverseproxy.models.ConfigFileModel;
 import com.example.reverseproxy.models.Location;
 import com.example.reverseproxy.service.RedisService;
@@ -44,7 +43,6 @@ public class Config {
         for(Location location:locations){
             redisService.set(location.getPrefix(),location,3600);
         }
-        System.out.println(redisService.get("/api/",Location.class));
         return configFileModel;
     }
 
