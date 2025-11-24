@@ -5,6 +5,8 @@ import com.example.reverseproxy.models.ConfigFileModel;
 import com.example.reverseproxy.models.Location;
 import com.example.reverseproxy.models.Upstream;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
 
@@ -61,6 +63,10 @@ public class ConfigFile {
     }
     public Upstream[] getUpstream(){
         return configFileModel.getServer().getUpstream();
+    }
+
+    public boolean check(int port) throws IOException {
+        return this.port == port;
     }
 
 }

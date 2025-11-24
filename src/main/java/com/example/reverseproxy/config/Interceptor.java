@@ -2,6 +2,7 @@ package com.example.reverseproxy.config;
 
 
 import com.example.reverseproxy.models.ConfigFileModel;
+import com.example.reverseproxy.service.ConfigFile;
 import com.example.reverseproxy.service.SendRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.Filter ;
@@ -22,19 +23,22 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Component
 public class Interceptor implements Filter {
     private final SendRequest sendRequest;
+    private final ConfigFile configFile;
     private List<Class<?>> list;
     @Getter
     private CachedRequest cachedRequest;
     @Getter
     private CachedResponse cachedResponse;
 
-    public Interceptor(SendRequest sendRequest) {
+    public Interceptor(SendRequest sendRequest, ConfigFile configFile) {
         this.sendRequest = sendRequest;
+        this.configFile = configFile;
     }
 
     @Override
@@ -47,11 +51,18 @@ public class Interceptor implements Filter {
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
 
+
         cachedRequest=new CachedRequest(request);
-        cachedResponse=new CachedResponse(response);
-        sendRequest.redirect(cachedRequest,response);
-//        System.out.println(cachedRequest.getCachedHeaders());
-//        System.out.println(cachedRequest.getRequestURI());
+        int port=cachedRequest.getLocalPort();
+        System.out.println(cachedRequest.getRequestURI()+" "+ cachedRequest.getLocalPort());
+        if(configFile.check(port)) {
+            sendRequest.redirect(cachedRequest, response);
+        }
+        else{
+            response.setStatus(404);
+            response.getWriter().write(port+" not allowed");
+        }
+
     }
 
 
