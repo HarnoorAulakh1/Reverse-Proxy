@@ -2,22 +2,32 @@ package com.example.reverseproxy.config;
 
 import com.example.reverseproxy.models.ConfigFileModel;
 import com.example.reverseproxy.models.Location;
+import com.example.reverseproxy.models.Upstream;
+import com.example.reverseproxy.service.CheckServer;
+import com.example.reverseproxy.service.ConfigFile;
 import com.example.reverseproxy.service.RedisService;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.catalina.connector.Connector;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
 @Configuration
 public class Config {
+
 
     @Bean
     public RestTemplate restTemplate() {
@@ -34,16 +44,17 @@ public class Config {
     }
 
     @Bean
-    public ConfigFileModel setFile(RedisService redisService) throws IOException {
+    public TomcatServletWebServerFactory servletContainer() throws IOException {
         File file=new File("/Users/harnoorsinghaulakh/Desktop/config.json");
         ObjectMapper objectMapper=new ObjectMapper();
         ConfigFileModel configFileModel=objectMapper.readValue(file,ConfigFileModel.class);
-        List<Location> locations=configFileModel.getServer().getLocations();
+        TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
 
-        for(Location location:locations){
-            redisService.set(location.getPrefix(),location,3600);
-        }
-        return configFileModel;
+        Connector connector = new Connector(TomcatServletWebServerFactory.DEFAULT_PROTOCOL);
+        connector.setPort(configFileModel.getServer().getListen());
+
+        factory.addAdditionalTomcatConnectors(connector);
+        return factory;
     }
 
 }

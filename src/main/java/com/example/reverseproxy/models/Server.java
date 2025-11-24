@@ -11,8 +11,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Server{
-    @Getter
-    private String listen;
+    private int listen;
     private String server_name;
     private List<Location> locations;
+    private Upstream[] upstream;
 }

@@ -24,7 +24,7 @@ public class SendRequest {
 
     public void redirect(CachedRequest cachedRequest, HttpServletResponse response) throws IOException {
         Location location=getLocation(cachedRequest.getRequestURI().trim());
-        //System.out.println("lcoation="+" "+location);
+        System.out.println("lcoation="+" "+location);
         if(location!=null && location.getRedirect()!=null)
             sendRequest(location.getRedirect(),cachedRequest,response);
         else
@@ -33,19 +33,29 @@ public class SendRequest {
 
     public Location getLocation(String uri){
         if(!uri.isEmpty()) {
-            for(int i=1;i<uri.length();i++) {
-                if (uri.charAt(i) == '/'){
-                    uri=uri.substring(0,i);
-                    break;
+            System.out.println(uri);
+            if(uri.length()>1)
+                uri=uri.charAt(uri.length()-1)=='/'?uri:uri+"/";
+            if(uri.length()>1) {
+                for (int i = uri.length() - 1; i > 0; i--) {
+                    if (uri.charAt(i) == '/') {
+                        String uri1 = uri.substring(0, i);
+                        if(redisService.hasKey("upstream:"+uri1)){
+                            //return redisService.get(uri1, Upstream.class);
+                        }
+                        else if (redisService.hasKey(uri1))
+                            return redisService.get(uri1, Location.class);
+                        else if (redisService.hasKey(uri1 + "/*"))
+                            return redisService.get(uri1 + "/*", Location.class);
+                    }
                 }
             }
-            System.out.println(uri);
-            if(uri.charAt(uri.length()-1)=='/' && uri.length()>1)
-                uri=uri.substring(0,uri.length()-1);
-            if(redisService.hasKey(uri))
-                return redisService.get(uri,Location.class);
-            else if(redisService.hasKey(uri+"/*"))
-                return redisService.get(uri+"/*",Location.class);
+            else{
+                if (redisService.hasKey(uri))
+                    return redisService.get(uri, Location.class);
+                else if (redisService.hasKey(uri + "*"))
+                    return redisService.get(uri + "*", Location.class);
+            }
         }
         return null;
     }
