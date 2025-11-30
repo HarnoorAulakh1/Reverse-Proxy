@@ -1,10 +1,8 @@
 package com.example.reverseproxy.config;
 
 
-import com.example.reverseproxy.models.ConfigFileModel;
 import com.example.reverseproxy.service.ConfigFile;
 import com.example.reverseproxy.service.SendRequest;
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.Filter ;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,17 +11,9 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Component
@@ -54,7 +44,7 @@ public class Interceptor implements Filter {
 
         cachedRequest=new CachedRequest(request);
         int port=cachedRequest.getLocalPort();
-        System.out.println(cachedRequest.getRequestURI()+" "+ cachedRequest.getLocalPort());
+        //System.out.println(cachedRequest.getRequestURI()+" "+ cachedRequest.getLocalPort());
         if(configFile.check(port)) {
             sendRequest.redirect(cachedRequest, response);
         }

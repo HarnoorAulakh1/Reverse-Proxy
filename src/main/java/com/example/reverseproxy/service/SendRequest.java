@@ -2,6 +2,7 @@ package com.example.reverseproxy.service;
 
 import com.example.reverseproxy.config.CachedRequest;
 import com.example.reverseproxy.models.Location;
+import com.example.reverseproxy.models.Upstream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,52 +10,66 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 
-@Component
+@Service
 public class SendRequest {
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
-    @Autowired
-    private RedisService redisService;
+    private final RedisService redisService;
+    private final RoundRobin roundRobin;
+
+    SendRequest(RestTemplate restTemplate,RedisService redisService,RoundRobin roundRobin){
+        this.redisService=redisService;
+        this.restTemplate=restTemplate;
+        this.roundRobin=roundRobin;
+    }
 
     public void redirect(CachedRequest cachedRequest, HttpServletResponse response) throws IOException {
-        Location location=getLocation(cachedRequest.getRequestURI().trim());
-        System.out.println("lcoation="+" "+location);
+        int port=cachedRequest.getLocalPort();
+        Location location=getLocation(cachedRequest.getRequestURI().trim(),port);
         if(location!=null && location.getRedirect()!=null)
             sendRequest(location.getRedirect(),cachedRequest,response);
         else
             response.setStatus(404);
     }
 
-    public Location getLocation(String uri){
-        if(!uri.isEmpty()) {
-            System.out.println(uri);
-            if(uri.length()>1)
-                uri=uri.charAt(uri.length()-1)=='/'?uri:uri+"/";
-            if(uri.length()>1) {
-                for (int i = uri.length() - 1; i > 0; i--) {
-                    if (uri.charAt(i) == '/') {
-                        String uri1 = uri.substring(0, i);
-                        if(redisService.hasKey("upstream:"+uri1)){
-                            //return redisService.get(uri1, Upstream.class);
+    public Location getLocation(String prefix,int port){
+        if(!prefix.isEmpty()) {
+            if(prefix.length()>1)
+                prefix=prefix.charAt(prefix.length()-1)=='/'?prefix:prefix+"/";
+            if(prefix.length()>1) {
+                for (int i = prefix.length() - 1; i > 0; i--) {
+                    if (prefix.charAt(i) == '/') {
+                        String prefix1 = port+":"+prefix.substring(0, i),prefix2=prefix.substring(0, i);
+                        if (redisService.hasKey(port+":"+prefix1) && i==prefix.length()-1) {
+                            return redisService.get(port + ":" + prefix, Location.class);
                         }
-                        else if (redisService.hasKey(uri1))
-                            return redisService.get(uri1, Location.class);
-                        else if (redisService.hasKey(uri1 + "/*"))
-                            return redisService.get(uri1 + "/*", Location.class);
+                        else if(redisService.hasKey("upstream:"+prefix1) && i==prefix.length()-1){
+                            String name=redisService.get("upstream:"+prefix1,Upstream.class).getName();
+                            String key=roundRobin.getUpstreamUrl(port+":"+name);
+                            return Location.builder().prefix(prefix2).redirect(key).build();
+                        }
+                        else if(redisService.hasKey("upstream:"+prefix1 + "/*")){
+                            String name=redisService.get("upstream:"+prefix1 + "/*",Upstream.class).getName();
+                            String key=roundRobin.getUpstreamUrl(port+":"+name);
+                            return Location.builder().prefix(prefix2).redirect(key).build();
+                        }
+                        else if (redisService.hasKey(prefix1 + "/*"))
+                            return redisService.get(prefix1 + "/*", Location.class);
                     }
                 }
             }
             else{
-                if (redisService.hasKey(uri))
-                    return redisService.get(uri, Location.class);
-                else if (redisService.hasKey(uri + "*"))
-                    return redisService.get(uri + "*", Location.class);
+                prefix=port+":"+prefix;
+                if (redisService.hasKey(prefix))
+                    return redisService.get(prefix, Location.class);
+                else if (redisService.hasKey(prefix + "*"))
+                    return redisService.get(prefix + "*", Location.class);
             }
         }
         return null;
@@ -68,7 +83,6 @@ public class SendRequest {
         HttpEntity<String> httpEntity = new HttpEntity<>(null, cachedRequest.getCachedHeaders());
         ResponseEntity<String> external=null;
         try {
-
             external = restTemplate.exchange(
                     url,
                     HttpMethod.valueOf(cachedRequest.getMethod()),

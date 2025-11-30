@@ -14,5 +14,5 @@ public class Server{
     private int listen;
     private String server_name;
     private List<Location> locations;
-    private Upstream[] upstream;
+    private List<Upstream> upstream;
 }
